@@ -212,3 +212,107 @@ day_order_norm.plot.line(x="요일", figsize=(20,10))
 
 ### 3. 지역을 기준으로 한 주문량 분석
 
+#### 지역구별 주문량
+```
+df_sigu = datas.groupby(['시군구']).sum()
+df_sigu = df_sigu.drop(['일자','시간대'],axis=1).reset_index()
+df_sigu= df_sigu.sort_values('통화건수',ascending =False)
+df_sigu.head()
+```
+* 주문건수 높은 5개구 
+
+|시군구|통화건수|
+|---|---|
+|강남구|1047814|
+|강서구|1014216|
+|중구|752301|
+|서초구|730401|
+|서대문구|668737|
+
+#### 2019년 서울시 구별 주문건수 합계
+```
+geo_path = './03_skorea_municipalities_geo_simple.json'
+geo_str = json.load(open(geo_path, encoding='utf-8'))
+
+df_map = folium.Map(location=[37.5502,126.982], zoom_start = 11,\
+                    tiles= 'cartodbpositron')
+# folium
+folium.Choropleth(
+    geo_data = geo_str,
+    data = df_sigu, columns = ['시군구','통화건수'],
+    nan_fill_color = 'purple', nan_fill_opacity =0.3,
+    key_on = 'feature.id',fill_color= 'Blues',
+    legend_name = '2019년 구별 주문건수 합계'
+).add_to(df_map)
+
+# 주문건수별 바 그래프 
+plt.figure(figsize=(12,6))
+sns.barplot(x = '통화건수', y='시군구',data =df_sigu[:6],palette ='Blues_d' )
+
+```
+<img width="600" alt="지역별주문량folium" src="https://user-images.githubusercontent.com/72846894/99193132-49c54f00-27ba-11eb-918a-18c091f2aa69.png">
+<img width="600" alt="주문건수별바그래프" src="https://user-images.githubusercontent.com/72846894/99193129-46ca5e80-27ba-11eb-8004-52a2759b2d2d.png">
+
+
+
+#### 2019년 서울시 구별 인구수
+```
+df_ppl = pd.read_csv("./0. raw_datas/ppl_report.txt",sep='\t',encoding='utf-8',thousands = ',')
+df_ppl = df_ppl[3:]
+df_ppl['인구'] = df_ppl['인구'].str.replace(',','').astype('int')
+ppl_sigu = df_ppl[['자치구','인구']]
+ppl_sigu = ppl_sigu.rename({'자치구':'시군구'},axis= 1)
+ppl_sigu = ppl_sigu.sort_values('인구',ascending =False)
+geo_path = './03_skorea_municipalities_geo_simple.json'
+geo_str = json.load(open(geo_path, encoding='utf-8'))
+
+# folium
+df_map = folium.Map(location=[37.5502,126.982], zoom_start = 11,\
+                    tiles= 'cartodbpositron')
+folium.Choropleth(
+    geo_data = geo_str,
+    data = ppl_sigu, columns = ['시군구','인구'],
+    nan_fill_color = 'purple', nan_fill_opacity =0.3,
+    key_on = 'feature.id',fill_color= 'Blues',
+    legend_name = '2019년 서울시 구별 인구수'
+).add_to(df_map)
+
+
+# 인구별 바 그래프 
+plt.figure(figsize=(12,6))
+sns.barplot(x = '인구', y='시군구',data =ppl_sigu[:6],palette ='Blues_d' )
+```
+<img width="600" alt="지역별인구수folium" src="https://user-images.githubusercontent.com/72846894/99193131-47fb8b80-27ba-11eb-8a6e-148dfacbd1ff.png">
+<img width="600" alt="인구별바그래프" src="https://user-images.githubusercontent.com/72846894/99193127-45993180-27ba-11eb-9412-f3b83a5935a4.png">
+
+
+
+#### 인구수 대비 주문건수가 높은 지역
+```
+df['주문율'] = df['통화건수'] / df['인구']
+df.sort_values('주문율',ascending= False,inplace= True)
+
+# folium
+df_map = folium.Map(location=[37.5502,126.982], zoom_start = 11,\
+                    tiles= 'cartodbpositron')
+folium.Choropleth(
+    geo_data = geo_str,
+    data = df, columns = ['시군구','주문율'],
+    nan_fill_color = 'purple', nan_fill_opacity =0.3,
+    key_on = 'feature.id',fill_color= 'Blues',
+    legend_name = '2019년 서울시 구별 거주인구 대비 통화량(주문율)'
+).add_to(df_map)
+
+# 주문율 바 그래프 
+plt.figure(figsize=(10,3))
+sns.barplot(x = '주문율', y='시군구',data =df[:5],palette ='Blues_d' )
+```
+<img width="641" alt="주문율 바그래프" src="https://user-images.githubusercontent.com/72846894/99193130-47fb8b80-27ba-11eb-85e7-89c3d8adca04.png">
+
+
+
+## Built With
+- [이정려](https://github.com/jungryo): 시간별 데이터 분석, Readme 작성
+- [전예나](https://github.com/Yenabeam): 지역별 데이터 분석, ppt 작성
+- [최재철](https://github.com/kkobooc): 배달업종별 데이터 분석, 발표
+
