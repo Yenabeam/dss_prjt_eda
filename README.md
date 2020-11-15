@@ -112,3 +112,103 @@ ax4 = sns.pointplot(x='hour', y='count', hue="menu",
 4. 점심에는 중국음식이 저녁에는 치킨이 대세 주문음식이다.
 
 ### 2. 배달업종을 기준으로 한 주문량 분석
+
+#### 일자별  주문량
+```
+date_order.plot.line(x="일자",figsize=(20,10))
+plt.grid("white")
+plt.show()
+```
+<img width="1161" alt="일자별_배달업종별_주문량" src="https://user-images.githubusercontent.com/72846894/99191573-c4896c80-27b0-11eb-8bc8-a625996bdcca.png">
+
+#### 월별 특성 분석
+```
+date_order = date_order.set_index("일자")
+monthly_order = date_order.resample('MS').mean().round(1).reset_index()
+months = MonthLocator()  # every month
+fig, ax = plt.subplots(figsize=(20,10))
+
+ax.plot_date(monthly_order["일자"] , \
+             monthly_order[["족발/보쌈","중식","치킨","피자"]], '-')      # x: datetime, y: random % values
+ax.xaxis.set_major_locator(months)   # define xtick major location
+monFmt = DateFormatter('%y년 %m월')      # define xtick string format
+ax.xaxis.set_major_locator(months)   # apply xtick location
+ax.xaxis.set_major_formatter(monFmt) # apply xtick label
+plt.xticks(rotation=90)
+plt.legend(monthly_order[["족발/보쌈","중식","치킨","피자"]])
+plt.show()
+```
+<img width="1152" alt="월단위_배달업종별_주문량추이" src="https://user-images.githubusercontent.com/72846894/99191566-c2271280-27b0-11eb-9d2f-931beec9e984.png">
+
+- 치킨 주문량이 감소, 중식 주문량이 증가한 것으로 보이나, 이는 배달 어플리케이션의 등록된 치킨 업체가 중식 업체보다 많기 때문으로 판단된다.
+
+#### 월별 주문 특성 분석
+```
+monthly_order_2 = date_order.resample('M').sum().reset_index()
+monthly_order_2["일자"] = monthly_order_2["일자"].dt.month
+monthly_order_2 = monthly_order_2.groupby("일자").mean().round(1)
+monthly_order_2.plot.line(figsize=(20,10))
+plt.xticks([1,2,3,4,5,6,7,8,9,10,11,12])
+plt.xlabel(None)
+plt.show()
+```
+<img width="1158" alt="월별_배달업종별_주문량" src="https://user-images.githubusercontent.com/72846894/99191569-c3583f80-27b0-11eb-9b64-3d95d0e8a41f.png">
+
+- 배달업종에 따른 주문량의 scale차이가 크게 나므로 정규화 진행 
+
+```
+col = ["족발/보쌈", "중식", "치킨", "피자"]
+monthly_order_2_norm = ((monthly_order_2[col]-monthly_order_2[col].min()) / (monthly_order_2[col].max()-monthly_order_2[col].min())).round(3)
+monthly_order_2_norm.plot.line(figsize=(20,10))
+plt.xlabel(None)
+plt.xticks([1,2,3,4,5,6,7,8,9,10,11,12])
+plt.show()
+```
+<img width="1155" alt="월별_정규화_배달업종별_주문량" src="https://user-images.githubusercontent.com/72846894/99191572-c3f0d600-27b0-11eb-9646-e73cbbb37307.png">
+
+* 치킨은 3월과 12월에 주문량이 두드러진다.
+* 중식과 족발/보쌈은 7월과 8월에 주문량이 두드러진다.
+* 피자는 12월에 주문량이 두드러진다. 
+
+#### 일별 특성분석
+```
+date_order.boxplot(figsize=(12,8))
+```
+<img width="715" alt="배달업종별_boxplot" src="https://user-images.githubusercontent.com/72846894/99191564-bf2c2200-27b0-11eb-8540-628b36eb2328.png">
+
+* 치킨과 중식의 배달량이 가장많고
+* 치킨, 족발/보쌈, 피자의 outlier는 upper fence 상단에, 
+* 중식의 outlier는 lower fence 하단에 분포
+
+**여기에는 각 outlier 나오게된 그 파일 넣으면 좋을듯**
+
+#### 요일별 특성분석
+```
+day_order = data.pivot_table("통화건수", "요일", "업종").round(1)
+day_order_sort = pd.DataFrame(columns=["요일", "족발/보쌈", "중식", "치킨", "피자"])
+
+day_order_sort.loc[0] = day_order.loc["월"]
+day_order_sort.loc[1] = day_order.loc["화"]
+day_order_sort.loc[2] = day_order.loc["수"]
+day_order_sort.loc[3] = day_order.loc["목"]
+day_order_sort.loc[4] = day_order.loc["금"]
+day_order_sort.loc[5] = day_order.loc["토"]
+day_order_sort.loc[6] = day_order.loc["일"]
+day_order_sort["요일"] = ["월", "화", "수", "목", "금", "토", "일"]
+day_order_sort.set_index("요일")
+
+# 정규화
+day_order_norm = pd.concat([day_order_sort["요일"], \
+                            (day_order_sort[col]-day_order_sort[col].min()) / (day_order_sort[col].max()-day_order_sort[col].min())], axis=1)
+day_order_norm
+
+day_order_norm.plot.line(x="요일", figsize=(20,10))
+```
+
+<img width="1155" alt="요일별_배달업종별_주문량" src="https://user-images.githubusercontent.com/72846894/99191565-c0f5e580-27b0-11eb-9ce7-4659f373055f.png">
+
+* 치킨과 족발/보쌈은 토요일에 주문량이 가장 많고
+* 피자와 중식을 일요일에 주문량이 가장 많다
+
+### 3. 지역을 기준으로 한 주문량 분석
+
